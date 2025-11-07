@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Welcome | To Do or Not To Do</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='auth.css') }}">
+</head>
+
+<body>
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <div class="flash-notify">
+        {% for message in messages %}
+          {{ message }}
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <div class="auth-container">
+    <h1>To Do or Not To Do</h1>
+
+    <div id="loginBox">
+      <h2>Login</h2>
+
+      <form method="POST" action="/auth" class="auth-form">
+        <input type="hidden" name="action" value="login">
+        <input type="text" name="username" placeholder="Username" required>
+        <input type="password" name="password" placeholder="Password" required>
+        <button type="submit">Login</button>
+              <div class="switch" style="margin-top:6px;">
+  <p><a href="#" id="showSignup" style="color:white;">Sign up</a></p>
+  <p style="margin-top:6px;"><a href="#" id="showForgot" style="color:white;">Forgot password?</a></p>
+      </div>
+      </form>
+      <!-- FORGOT PASSWORD BOX (hidden by default) -->
+      <div id="forgotBox" class="hidden" style="margin-top:12px;">
+        <h3 style="margin:8px 0 6px;">Reset Password</h3>
+        <form method="POST" action="/forgot" class="auth-form" id="forgotForm">
+          <input type="text" name="username" placeholder="Username" required>
+          <input type="text" name="security" placeholder="Mother's Maiden Name" required>
+          <input type="password" name="new_password" placeholder="New password" required>
+          <button type="submit">Reset Password</button>
+        </form>
+        <div class="switch" style="margin-top:8px;">
+          <p><a href="#" id="hideForgot">Back to login</a></p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- SIGNUP BOX -->
+    <div id="signupBox" class="hidden">
+      <h2>Sign Up</h2>
+      <form method="POST" action="/auth" class="auth-form">
+        <input type="hidden" name="action" value="signup">
+        <input type="text" name="username" placeholder="Username" required>
+        <input type="text" name="name" placeholder="name" required>
+        <input type="text" name="security" placeholder="Mother's Maiden Name" required>
+        <input type="password" name="password" placeholder="Password" required>
+        <button type="submit">Create Account</button>
+      </form>
+      <div class="switch">
+        <p>Already have an account? <a href="#" id="showLogin">Log in</a></p>
+      </div>
+    </div>
+  </div>
+  <!-- Custom Alert Modal -->
+  <div id="customAlert" class="custom-modal" style="display:none;">
+    <div class="custom-modal-content">
+      <span id="customAlertMsg"></span>
+      <div class="custom-modal-actions">
+        <button id="customAlertOk" class="btn">OK</button>
+        <button id="customAlertCancel" class="btn" style="display:none;">Cancel</button>
+      </div>
+    </div>
+  </div>
+  <script src="{{ url_for('static', filename='auth.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,183 @@
+/* === AUTH PAGE STYLES (Dark Theme Consistent with To-Do) === */
+
+/* Base layout */
+body {
+  font-family: Arial, sans-serif;
+  background: #181a1b;
+  color: #e0e0e0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+/* Container box */
+.auth-container {
+  background: #23272a;
+  padding: 40px 30px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.7);
+  width: 90%;
+  max-width: 420px;
+  text-align: center;
+}
+
+/* Headings */
+.auth-container h1 {
+  color: #fff;
+  margin-bottom: 25px;
+}
+
+.auth-container h2 {
+  margin-bottom: 18px;
+  color: #fff;
+  font-weight: normal;
+}
+
+/* Specific colors for headings */
+#loginBox h2 {
+  color: #4caf50; /* green */
+}
+#signupBox h2 {
+  color: #ffeb3b; /* yellow */
+}
+
+/* Form */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.auth-form input[type="text"],
+.auth-form input[type="password"],
+.auth-form input[type="email"] {
+  background: #181a1b;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 12px;
+  color: #e0e0e0;
+  font-size: 1em;
+}
+
+.auth-form button {
+  background: seagreen;
+  border: none;
+  color: #fff;
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 1em;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.auth-form button:hover {
+  background: mediumseagreen;
+}
+
+/* Links and switches */
+.switch {
+  margin-top: 16px;
+  font-size: 0.95em;
+  color: #bdbdbd;
+}
+
+.switch a {
+  color: white;
+  text-decoration: none;
+}
+
+.switch a:hover {
+  text-decoration: underline;
+}
+  
+/* Flash messages */
+.flash {
+  background: #222;
+  color: white;
+  padding: 8px;
+  border-radius: 5px;
+  margin-bottom: 15px;
+  font-size: 0.9em;
+}
+
+.flash-notify {
+  position: fixed;
+  top: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #23272a;
+  color: white;
+  padding: 16px 32px;
+  border-radius: 8px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+  font-size: 1.05em;
+  z-index: 1000;
+  animation: fadein 0.3s, fadeout 0.5s 2.5s;
+  min-width: 220px;
+  text-align: center;
+}
+
+@keyframes fadein {
+  from { opacity: 0; top: 0; }
+  to   { opacity: 1; top: 40px; }
+}
+@keyframes fadeout {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+/* Hidden class for toggling between login and signup */
+.hidden {
+  display: none;
+}
+
+/* Modal styles */
+.custom-modal {
+  position: fixed;
+  z-index: 2000;
+  left: 0; top: 0; width: 100vw; height: 100vh;
+  background: rgba(0,0,0,0.7);
+  display: flex; align-items: center; justify-content: center;
+}
+.custom-modal-content {
+  background: #23272a;
+  color: #e0e0e0;
+  padding: 32px 28px 22px 28px;
+  border-radius: 14px;
+  min-width: 320px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.7);
+  text-align: center;
+}
+.custom-modal-actions {
+  margin-top: 22px;
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+}
+.custom-modal .btn {
+  background: #7fd7e0;
+  color: #23272a;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 28px;
+  font-size: 1em;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.custom-modal .btn:hover {
+  background: #4ecdc4;
+}
+.custom-modal .btn:last-child {
+  background: #184850;
+  color: #fff;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .auth-container {
+    padding: 30px 20px;
+  }
+}

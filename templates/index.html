@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>To Do List</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+  <h1>To do or Not To Do</h1>
+  <p>By: EJ Tolentino</p>
+  <div style="text-align:center; margin-bottom:18px;">
+    <a href="/profile" style="color:#7fd7e0; font-weight:bold; text-decoration:none;">Profile</a>
+  </div>
+
+  <div class="container">
+    <div class="top-bar">
+      <label>
+        Sort by:
+        <select id="sortBy">
+          <option value="createdAt">Date Added</option>
+          <option value="dueDate">Due Date</option>
+          <option value="priority">Priority</option>
+        </select>
+      </label>
+      <button class="add-btn" id="openModalBtn">+ Add Task</button>
+    </div>
+
+    <div class="show-completed">
+      <label>
+        <input type="checkbox" id="showCompleted">
+        Show Completed Tasks
+      </label>
+    </div>
+
+    <ul id="taskList"></ul>
+  </div>
+
+  <div id="taskModal" class="modal">
+    <div class="modal-content">
+      <span class="close" id="closeModalBtn">&times;</span>
+      <h2>Add New Task</h2>
+      <form id="taskForm">
+        <input type="text" id="title" placeholder="Task title" required>
+        <textarea id="description" placeholder="Description" rows="4"></textarea>
+        <div class="form-row">
+          <input type="date" id="dueDate" required>
+          <input type="time" id="dueTime" required>
+        </div>
+        <select id="priority">
+          <option value="Low">Low</option>
+          <option value="Mid">Mid</option>
+          <option value="High">High</option>
+        </select>
+        <button type="submit">Add Task</button>
+      </form>
+    </div>
+  </div>
+
+  
+  <div class="toast" id="toast">Task deleted <button id="undoBtn">Undo</button></div>
+
+  <!-- Custom Alert Modal -->
+<div id="customAlert" class="custom-modal" style="display:none;">
+  <div class="custom-modal-content">
+    <span id="customAlertMsg"></span>
+    <div class="custom-modal-actions">
+      <button id="customAlertOk" class="btn">OK</button>
+      <button id="customAlertCancel" class="btn" style="display:none;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
