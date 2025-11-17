@@ -23,6 +23,22 @@ h1 { margin-bottom: 5px; }
   justify-content: space-between;
   align-items: center;
 }
+.top-bar > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.top-bar label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+.top-bar .btn,
+.top-bar .add-btn {
+  margin-left: 0;
+}
 .show-completed {
   margin: 10px 0;
 }
@@ -43,11 +59,18 @@ h1 { margin-bottom: 5px; }
 }
 .btn {
   margin-left: 5px;
-  padding: 5px 10px;
-  border: none;
+  padding: 8px 12px;
+  border: 1px solid #555;
+  border-radius: 6px;
+  background: #3a3f44;
+  color: #fff;
   cursor: pointer;
-  border-radius: 4px;
+  transition: filter .15s, background .15s, border-color .15s;
 }
+.btn:hover:not(:disabled) { filter: brightness(1.1); }
+.btn:disabled { opacity: .6; cursor: not-allowed; }
+.btn--primary { background: seagreen; border-color: seagreen; color: #fff; }
+.btn--primary:hover:not(:disabled) { filter: brightness(1.1); }
 .btn-delete { background: #b71c1c; color: white; }
 .btn-edit   { background: #1976d2; color: white; }
 .btn-done   { background: seagreen; color: white; }
@@ -145,6 +168,30 @@ input[type="checkbox"] { accent-color: seagreen; }
   top: 10px;
   font-size: 28px;
   cursor: pointer;
+}
+
+/* Custom Alert Modal (shared) */
+.custom-modal {
+  position: fixed;
+  z-index: 2000;
+  left: 0; top: 0; width: 100vw; height: 100vh;
+  background: rgba(0,0,0,0.7);
+  display: flex; align-items: center; justify-content: center;
+}
+.custom-modal-content {
+  background: #23272a;
+  color: #e0e0e0;
+  padding: 32px 28px 22px 28px;
+  border-radius: 14px;
+  min-width: 320px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.7);
+  text-align: center;
+}
+.custom-modal-actions {
+  margin-top: 22px;
+  display: flex;
+  justify-content: center;
+  gap: 18px;
 }
 
 /* create task form */

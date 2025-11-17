@@ -3,13 +3,20 @@ from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
 import datetime
+import os
 
-app = Flask(__name__)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+app = Flask(
+    __name__,
+    static_folder=os.path.join(BASE_DIR, "static"),
+    template_folder=os.path.join(BASE_DIR, "templates"),
+)
 CORS(app)
 app.secret_key = "hell_yeah"
+app.permanent_session_lifetime = datetime.timedelta(days=14)
 
-TASK_DB = "tasks.db"
-ACCOUNTS_DB = "accounts.db"
+TASK_DB = os.path.join(BASE_DIR, "tasks.db")
+ACCOUNTS_DB = os.path.join(BASE_DIR, "accounts.db")
 
 # --- Helpers ---
 def query_db(db_file, query, args=(), one=False):
@@ -26,6 +33,7 @@ def init_task_db():
             CREATE TABLE IF NOT EXISTS tasks (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER NOT NULL,
+                list_id INTEGER,
                 title TEXT NOT NULL,
                 description TEXT,
                 dueDate TEXT,
@@ -40,6 +48,25 @@ def init_task_db():
         cols = {row[1] for row in cur.fetchall()}
         if 'user_id' not in cols:
             conn.execute("ALTER TABLE tasks ADD COLUMN user_id INTEGER NOT NULL DEFAULT 1")
+        if 'list_id' not in cols:
+            conn.execute("ALTER TABLE tasks ADD COLUMN list_id INTEGER")
+
+        # Collaborative lists
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS lists (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                owner_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                is_collab INTEGER DEFAULT 1
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS list_members (
+                list_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                UNIQUE(list_id, user_id)
+            )
+        """)
 
 def init_accounts_db():
     with sqlite3.connect(ACCOUNTS_DB) as conn:
@@ -65,6 +92,12 @@ def init_accounts_db():
 def get_user_by_username(username):
     rows = query_db(ACCOUNTS_DB, "SELECT * FROM users WHERE username=?", (username,))
     return rows[0] if rows else None
+
+def is_member(user_id, list_id):
+    if list_id is None:
+        return True
+    rows = query_db(TASK_DB, "SELECT 1 FROM list_members WHERE list_id=? AND user_id=?", (list_id, user_id))
+    return bool(rows)
 
 
 # --- Routes ---
@@ -124,6 +157,7 @@ def auth():
             flash("Invalid username or password.")
             return redirect(url_for("auth"))
 
+        session.permanent = True
         session["user_id"] = user["id"]
         session["username"] = user["username"]
         if wants_json:
@@ -218,7 +252,19 @@ def get_tasks():
     if "user_id" not in session:
         return jsonify([])
     user_id = session["user_id"]
-    rows = query_db(TASK_DB, "SELECT * FROM tasks WHERE user_id=?", (user_id,))
+    list_id = request.args.get("list_id")
+    if list_id:
+        # Ensure user is a member of the collab list
+        try:
+            lid = int(list_id)
+        except ValueError:
+            return jsonify({"ok": False, "error": "Invalid list_id"}), 400
+        if not is_member(user_id, lid):
+            return ("Forbidden", 403)
+        rows = query_db(TASK_DB, "SELECT * FROM tasks WHERE list_id=?", (lid,))
+    else:
+        # Personal tasks (no list_id)
+        rows = query_db(TASK_DB, "SELECT * FROM tasks WHERE user_id=? AND (list_id IS NULL OR list_id='')", (user_id,))
     return jsonify([dict(r) for r in rows])
 
 @app.route("/tasks", methods=["POST"])
@@ -227,11 +273,21 @@ def add_task():
         return ("Unauthorized", 401)
     data = request.json
     user_id = session["user_id"]
+    list_id = data.get("list_id")
+    lid = None
+    if list_id is not None:
+        try:
+            lid = int(list_id)
+        except (ValueError, TypeError):
+            return jsonify({"ok": False, "error": "Invalid list_id"}), 400
+        if not is_member(user_id, lid):
+            return ("Forbidden", 403)
     query_db(
         TASK_DB,
-        "INSERT INTO tasks (user_id, title, description, dueDate, dueTime, priority, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO tasks (user_id, list_id, title, description, dueDate, dueTime, priority, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
         (
             user_id,
+            lid,
             data["title"],
             data.get("description", ""),
             data.get("dueDate"),
@@ -242,8 +298,127 @@ def add_task():
     )
     return jsonify({"message": "Task added"}), 201
 
+@app.route("/tasks/<int:task_id>", methods=["PATCH", "PUT"])
+def update_task(task_id):
+    if "user_id" not in session:
+        return ("Unauthorized", 401)
+    user_id = session["user_id"]
+    data = request.json or {}
+    # Fetch task to check permissions
+    row = query_db(TASK_DB, "SELECT * FROM tasks WHERE id=?", (task_id,), one=True)
+    if not row:
+        return ("Not found", 404)
+    owner_id = row["user_id"]
+    list_id = row["list_id"]
+    if list_id:
+        if not is_member(user_id, list_id):
+            return ("Forbidden", 403)
+    else:
+        if owner_id != user_id:
+            return ("Forbidden", 403)
+    fields = []
+    args = []
+    for key in ["title", "description", "dueDate", "dueTime", "priority", "done"]:
+        if key in data:
+            fields.append(f"{key}=?")
+            args.append(data[key])
+    if not fields:
+        return jsonify({"ok": False, "error": "No fields to update"}), 400
+    args.append(task_id)
+    query_db(TASK_DB, f"UPDATE tasks SET {', '.join(fields)} WHERE id=?", tuple(args))
+    return jsonify({"message": "Task updated"}), 200
+
+@app.route("/tasks/<int:task_id>", methods=["DELETE"])
+def delete_task(task_id):
+    if "user_id" not in session:
+        return ("Unauthorized", 401)
+    user_id = session["user_id"]
+    row = query_db(TASK_DB, "SELECT * FROM tasks WHERE id=?", (task_id,), one=True)
+    if not row:
+        return ("Not found", 404)
+    owner_id = row["user_id"]
+    list_id = row["list_id"]
+    if list_id:
+        if not is_member(user_id, list_id):
+            return ("Forbidden", 403)
+    else:
+        if owner_id != user_id:
+            return ("Forbidden", 403)
+    query_db(TASK_DB, "DELETE FROM tasks WHERE id=?", (task_id,))
+    return jsonify({"message": "Task deleted"}), 200
+
+# === Collaborative Lists ===
+@app.route("/lists", methods=["GET"])
+def list_lists():
+    if "user_id" not in session:
+        return ("Unauthorized", 401)
+    user_id = session["user_id"]
+    rows = query_db(
+        TASK_DB,
+        """
+        SELECT l.id, l.name, l.owner_id, l.is_collab,
+               CASE WHEN l.owner_id=? THEN 1 ELSE 0 END AS is_owner
+        FROM lists l
+        JOIN list_members m ON m.list_id = l.id
+        WHERE m.user_id = ?
+        ORDER BY l.name
+        """,
+        (user_id, user_id),
+    )
+    return jsonify([dict(r) for r in rows])
+
+@app.route("/lists", methods=["POST"])
+def create_list():
+    if "user_id" not in session:
+        return ("Unauthorized", 401)
+    user_id = session["user_id"]
+    data = request.json or {}
+    name = (data.get("name") or "").strip()
+    if not name:
+        return jsonify({"ok": False, "error": "List name required"}), 400
+    # Create list
+    query_db(TASK_DB, "INSERT INTO lists (owner_id, name, is_collab) VALUES (?, ?, 1)", (user_id, name))
+    # Fetch created id
+    row = query_db(TASK_DB, "SELECT id FROM lists WHERE owner_id=? AND name=? ORDER BY id DESC", (user_id, name), one=True)
+    list_id = row["id"]
+    # Add owner as member
+    try:
+        query_db(TASK_DB, "INSERT OR IGNORE INTO list_members (list_id, user_id) VALUES (?, ?)", (list_id, user_id))
+    except Exception:
+        pass
+    return jsonify({"message": "List created", "id": list_id}), 201
+
+@app.route("/lists/<int:list_id>/members", methods=["POST"])
+def add_member(list_id):
+    if "user_id" not in session:
+        return ("Unauthorized", 401)
+    user_id = session["user_id"]
+    # Ensure caller is owner
+    row = query_db(TASK_DB, "SELECT * FROM lists WHERE id=?", (list_id,), one=True)
+    if not row:
+        return ("Not found", 404)
+    if row["owner_id"] != user_id:
+        return ("Forbidden", 403)
+    data = request.json or {}
+    username = (data.get("username") or "").strip()
+    if not username:
+        return jsonify({"ok": False, "error": "username required"}), 400
+    user = get_user_by_username(username)
+    if not user:
+        return jsonify({"ok": False, "error": "User not found"}), 404
+    query_db(TASK_DB, "INSERT OR IGNORE INTO list_members (list_id, user_id) VALUES (?, ?)", (list_id, user["id"]))
+    return jsonify({"message": "Member added"}), 200
+
 
 if __name__ == "__main__":
     init_task_db()
     init_accounts_db()
     app.run(debug=True)
+
+# Ensure restricted pages are not cached so Back button can't expose them
+@app.after_request
+def add_no_cache_headers(response):
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response

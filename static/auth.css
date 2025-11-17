@@ -83,6 +83,7 @@ body {
   font-size: 0.95em;
   color: #bdbdbd;
 }
+.switch p { margin: 4px 0; }
 
 .switch a {
   color: white;
@@ -158,21 +159,16 @@ body {
   gap: 18px;
 }
 .custom-modal .btn {
-  background: #7fd7e0;
-  color: #23272a;
-  border: none;
-  border-radius: 20px;
-  padding: 8px 28px;
-  font-size: 1em;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.custom-modal .btn:hover {
-  background: #4ecdc4;
-}
-.custom-modal .btn:last-child {
-  background: #184850;
+  background: #3a3f44;
   color: #fff;
+  border: 1px solid #555;
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+.custom-modal .btn:hover { filter: brightness(1.1); }
+.custom-modal .btn:last-child {
+  background: seagreen;
+  border-color: seagreen;
 }
 
 /* Responsive */

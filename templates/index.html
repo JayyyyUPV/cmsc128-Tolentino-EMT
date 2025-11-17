@@ -16,15 +16,25 @@
 
   <div class="container">
     <div class="top-bar">
-      <label>
-        Sort by:
-        <select id="sortBy">
-          <option value="createdAt">Date Added</option>
-          <option value="dueDate">Due Date</option>
-          <option value="priority">Priority</option>
-        </select>
-      </label>
-      <button class="add-btn" id="openModalBtn">+ Add Task</button>
+      <div>
+        <label>
+          Sort by:
+          <select id="sortBy">
+            <option value="createdAt">Date Added</option>
+            <option value="dueDate">Due Date</option>
+            <option value="priority">Priority</option>
+          </select>
+        </label>
+        <label>
+          List:
+          <select id="listSelect"></select>
+        </label>
+      </div>
+      <div>
+        <button class="btn" id="createListBtn" title="Create collaborative list">New List</button>
+        <button class="btn" id="shareListBtn" title="Add member to current list" disabled>Share</button>
+        <button class="add-btn" id="openModalBtn">+ Add Task</button>
+      </div>
     </div>
 
     <div class="show-completed">
