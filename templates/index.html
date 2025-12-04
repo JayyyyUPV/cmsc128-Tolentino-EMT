@@ -32,7 +32,7 @@
       </div>
       <div>
         <button class="btn" id="createListBtn" title="Create collaborative list">New List</button>
-        <button class="btn" id="shareListBtn" title="Add member to current list" disabled>Share</button>
+        <button class="btn" id="shareListBtn" title="Manage sharing for current list" disabled>Share</button>
         <button class="add-btn" id="openModalBtn">+ Add Task</button>
       </div>
     </div>
@@ -81,6 +81,41 @@
     </div>
   </div>
 </div>
+
+  <!-- Share Modal -->
+  <div id="shareModal" class="modal">
+    <div class="modal-content" style="max-width: 480px;">
+      <span class="close" id="closeShareModal">&times;</span>
+      <h2 id="shareModalTitle">List</h2>
+      <div class="share-section">
+        <h3 style="margin:12px 0 6px;">Members</h3>
+        <ul id="shareMembers" class="share-members"></ul>
+        <p id="shareEmpty" style="color:#bdbdbd; display:none;">No members yet.</p>
+      </div>
+      <form id="shareForm" class="share-form">
+        <label for="shareUsername">Add user by username</label>
+        <div class="form-row">
+          <input type="text" id="shareUsername" placeholder="username" required>
+          <button type="submit" class="btn btn--primary">Add</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Create List Modal -->
+  <div id="createListModal" class="modal">
+    <div class="modal-content" style="max-width: 420px;">
+      <span class="close" id="closeCreateListModal">&times;</span>
+      <h2>Create List</h2>
+      <form id="createListForm" class="share-form">
+        <label for="createListName">List name</label>
+        <div class="form-row">
+          <input type="text" id="createListName" placeholder="e.g., Team Tasks" required>
+          <button type="submit" class="btn btn--primary">Create</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
 <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>

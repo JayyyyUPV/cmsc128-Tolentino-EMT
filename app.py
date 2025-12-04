@@ -15,6 +15,7 @@ CORS(app)
 app.secret_key = "hell_yeah"
 app.permanent_session_lifetime = datetime.timedelta(days=14)
 
+# create two seperate databases for tasks and accts
 TASK_DB = os.path.join(BASE_DIR, "tasks.db")
 ACCOUNTS_DB = os.path.join(BASE_DIR, "accounts.db")
 
@@ -51,7 +52,7 @@ def init_task_db():
         if 'list_id' not in cols:
             conn.execute("ALTER TABLE tasks ADD COLUMN list_id INTEGER")
 
-        # Collaborative lists
+        # make the collab lists
         conn.execute("""
             CREATE TABLE IF NOT EXISTS lists (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -101,6 +102,7 @@ def is_member(user_id, list_id):
 
 
 # --- Routes ---
+#returns if not at logged in
 @app.route("/")
 def home():
     if "user_id" not in session:
@@ -109,7 +111,10 @@ def home():
 
 @app.route("/auth", methods=["GET", "POST"])
 def auth():
+    logged_in = "user_id" in session
     if request.method == "GET":
+        if logged_in:
+            return redirect(url_for("home"))
         return render_template("auth.html")
 
     # If this is an AJAX request asking for JSON, we'll return JSON instead of flashing + redirecting
@@ -150,6 +155,11 @@ def auth():
 
     # === LOGIN ===
     elif action == "login":
+        if logged_in:
+            if wants_json:
+                return jsonify({"ok": False, "error": "Already logged in."}), 400
+            flash("Already logged in.")
+            return redirect(url_for("home"))
         user = get_user_by_username(username)
         if not user or not check_password_hash(user["password_hash"], password):
             if wants_json:
@@ -157,6 +167,7 @@ def auth():
             flash("Invalid username or password.")
             return redirect(url_for("auth"))
 
+#permanent
         session.permanent = True
         session["user_id"] = user["id"]
         session["username"] = user["username"]
@@ -167,6 +178,7 @@ def auth():
 
     return redirect(url_for("auth"))
 
+#clear when refreshin
 @app.route("/logout")
 def logout():
     session.clear()
@@ -253,6 +265,7 @@ def get_tasks():
         return jsonify([])
     user_id = session["user_id"]
     list_id = request.args.get("list_id")
+    #gets list and ensures that they are a member of an owner
     if list_id:
         # Ensure user is a member of the collab list
         try:
@@ -263,7 +276,7 @@ def get_tasks():
             return ("Forbidden", 403)
         rows = query_db(TASK_DB, "SELECT * FROM tasks WHERE list_id=?", (lid,))
     else:
-        # Personal tasks (no list_id)
+        # GET fetches tasks owned by current user only:
         rows = query_db(TASK_DB, "SELECT * FROM tasks WHERE user_id=? AND (list_id IS NULL OR list_id='')", (user_id,))
     return jsonify([dict(r) for r in rows])
 
@@ -300,6 +313,7 @@ def add_task():
 
 @app.route("/tasks/<int:task_id>", methods=["PATCH", "PUT"])
 def update_task(task_id):
+    #when it loads tsks checks first if user is in session
     if "user_id" not in session:
         return ("Unauthorized", 401)
     user_id = session["user_id"]
@@ -349,6 +363,7 @@ def delete_task(task_id):
 
 # === Collaborative Lists ===
 @app.route("/lists", methods=["GET"])
+#shows all  lists current user has
 def list_lists():
     if "user_id" not in session:
         return ("Unauthorized", 401)
@@ -376,24 +391,26 @@ def create_list():
     name = (data.get("name") or "").strip()
     if not name:
         return jsonify({"ok": False, "error": "List name required"}), 400
-    # Create list
+    # Create collab list
     query_db(TASK_DB, "INSERT INTO lists (owner_id, name, is_collab) VALUES (?, ?, 1)", (user_id, name))
     # Fetch created id
     row = query_db(TASK_DB, "SELECT id FROM lists WHERE owner_id=? AND name=? ORDER BY id DESC", (user_id, name), one=True)
     list_id = row["id"]
     # Add owner as member
     try:
+    # ADD MEMBERS
         query_db(TASK_DB, "INSERT OR IGNORE INTO list_members (list_id, user_id) VALUES (?, ?)", (list_id, user_id))
     except Exception:
         pass
     return jsonify({"message": "List created", "id": list_id}), 201
 
+#ADD NEW MEMBERS TO LISTT, called by share button
 @app.route("/lists/<int:list_id>/members", methods=["POST"])
 def add_member(list_id):
     if "user_id" not in session:
         return ("Unauthorized", 401)
     user_id = session["user_id"]
-    # Ensure caller is owner
+    # checks if th ecaller owns list
     row = query_db(TASK_DB, "SELECT * FROM lists WHERE id=?", (list_id,), one=True)
     if not row:
         return ("Not found", 404)
@@ -409,16 +426,63 @@ def add_member(list_id):
     query_db(TASK_DB, "INSERT OR IGNORE INTO list_members (list_id, user_id) VALUES (?, ?)", (list_id, user["id"]))
     return jsonify({"message": "Member added"}), 200
 
+@app.route("/lists/<int:list_id>/members", methods=["GET"])
+def list_members_endpoint(list_id):
+    if "user_id" not in session:
+        return ("Unauthorized", 401)
+    user_id = session["user_id"]
+    row = query_db(TASK_DB, "SELECT * FROM lists WHERE id=?", (list_id,), one=True)
+    if not row:
+        return ("Not found", 404)
+    # Only members can view
+    if not is_member(user_id, list_id):
+        return ("Forbidden", 403)
+    members = query_db(
+        TASK_DB,
+        """
+        SELECT lm.user_id, CASE WHEN l.owner_id = lm.user_id THEN 1 ELSE 0 END AS is_owner
+        FROM list_members lm
+        JOIN lists l ON l.id = lm.list_id
+        WHERE lm.list_id=?
+        """,
+        (list_id,)
+    )
+    # Pull usernames from accounts DB
+    results = []
+    for m in members:
+        user = query_db(ACCOUNTS_DB, "SELECT username FROM users WHERE id=?", (m["user_id"],), one=True)
+        username = user["username"] if user else f"user-{m['user_id']}"
+        results.append({"user_id": m["user_id"], "is_owner": m["is_owner"], "username": username})
+    # Sort owner first, then username
+    results.sort(key=lambda x: (-(x["is_owner"] or 0), x["username"].lower()))
+    return jsonify(results)
 
-if __name__ == "__main__":
-    init_task_db()
-    init_accounts_db()
-    app.run(debug=True)
+@app.route("/lists/<int:list_id>/members/<int:member_id>", methods=["DELETE"])
+def remove_member(list_id, member_id):
+    if "user_id" not in session:
+        return ("Unauthorized", 401)
+    user_id = session["user_id"]
+    row = query_db(TASK_DB, "SELECT * FROM lists WHERE id=?", (list_id,), one=True)
+    if not row:
+        return ("Not found", 404)
+    # Only owner can remove, and owner cannot remove themselves
+    if row["owner_id"] != user_id:
+        return ("Forbidden", 403)
+    if member_id == row["owner_id"]:
+        return jsonify({"ok": False, "error": "Owner cannot be removed."}), 400
+    query_db(TASK_DB, "DELETE FROM list_members WHERE list_id=? AND user_id=?", (list_id, member_id))
+    return jsonify({"message": "Member removed"}), 200
 
-# Ensure restricted pages are not cached so Back button can't expose them
+
 @app.after_request
 def add_no_cache_headers(response):
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
     return response
+
+
+if __name__ == "__main__":
+    init_task_db()
+    init_accounts_db()
+    app.run(debug=True)

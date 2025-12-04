@@ -4,11 +4,11 @@ To-Do List (Lab1 + Lab2)
 - Databases: `accounts.db` (users), `tasks.db` (tasks, lists, memberships)
 - Frontend: Vanilla HTML/CSS/JS
 
-How To Run
+How To Run (Windows)
 
-- Optional venv (Windows): `python -m venv .venv && .\.venv\Scripts\activate`
-- Install: `pip install flask flask-cors werkzeug`
-- Start server: `python app.py`
+- Optional venv: `py -m venv .venv && .\.venv\Scripts\activate`
+- Install: `py -m pip install flask flask-cors werkzeug`
+- Start server: `py app.py`
 - Open: http://127.0.0.1:5000
 
 Auth Flow
@@ -33,4 +33,3 @@ Data Model Notes
 - Personal: `tasks(user_id=<you>, list_id=NULL)`
 - Collaborative: `tasks(list_id=<list>, user_id=<creator>)`
 - Access via `list_members(list_id, user_id)`
-

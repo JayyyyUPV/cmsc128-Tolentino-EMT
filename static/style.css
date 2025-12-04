@@ -225,3 +225,57 @@ input[type="checkbox"] { accent-color: seagreen; }
   margin-top: 10px;
   width: 100%;
 }
+
+/* Share modal */
+.share-section h3 { margin: 0; }
+.share-members {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 12px;
+  border: 1px solid #333;
+  border-radius: 8px;
+  background: #1d2022;
+}
+.share-members li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid #2a2f33;
+}
+.share-members li:last-child { border-bottom: none; }
+.share-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.85em;
+  background: #2f3b4a;
+  color: #9bc9ff;
+  margin-left: 8px;
+}
+.share-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+.share-form .form-row {
+  display: flex;
+  gap: 8px;
+}
+.share-form input[type="text"] {
+  flex: 1;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #444;
+  background: #181a1b;
+  color: #e0e0e0;
+}
+.share-form input[type="text"] {
+  flex: 1;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #444;
+  background: #181a1b;
+  color: #e0e0e0;
+}
