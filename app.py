@@ -485,4 +485,6 @@ def add_no_cache_headers(response):
 if __name__ == "__main__":
     init_task_db()
     init_accounts_db()
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 8080))
+    debug = os.environ.get("FLASK_DEBUG", "0") == "1"
+    app.run(host="0.0.0.0", port=port, debug=debug)
